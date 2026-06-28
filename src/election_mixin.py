@@ -42,6 +42,8 @@ time.
 """
 import json
 import logging
+
+from utils.common.agent_types import AgentType
 from typing import Dict, Optional, Set
 
 from gradysim.protocol.messages.communication import BroadcastMessageCommand
@@ -216,7 +218,7 @@ class ElectionMixin:
 
         # ── Sensor data during election → buffer it ────────────────────
         sender_type = raw.get("sender_type")
-        if sender_type == "sensor" and self._election_in_progress:
+        if sender_type == AgentType.SENSOR.value and self._election_in_progress:
             incoming: Dict[str, int] = raw.get("packets", {})
             if incoming:
                 for sensor, count in incoming.items():
@@ -230,7 +232,7 @@ class ElectionMixin:
             return
 
         # ── UAV heartbeat → track peer for split/merge detection ───────
-        if sender_type == "uav":
+        if sender_type == AgentType.UAV.value:
             peer_id = raw.get("sender_id")
             if peer_id is not None:
                 now = self.provider.current_time()
@@ -343,6 +345,11 @@ class ElectionMixin:
         logging.debug(
             f"UAV {my_id} received election from {sender_id}"
         )
+
+        # Give the reconciliation strategy access to the sender's metadata
+        # (e.g. packet count) before the pairwise comparison.
+        if hasattr(self.reconciliation_strategy, "update_candidate_info"):
+            self.reconciliation_strategy.update_candidate_info(sender_id, raw)
 
         # Use the reconciliation strategy to decide who should prevail
         ctx = self._build_election_context()

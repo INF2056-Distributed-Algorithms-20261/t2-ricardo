@@ -39,6 +39,7 @@ from src.uav import make_uav_viz, set_total_uavs
 
 from utils.metrics.election_stats import ELECTION_LOG
 
+from src.strategies_boshu import HeartbeatTimeoutDetection, AnyMemberLeadInvitation, PacketCountBullyReconciliation
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="GrADySim UAV cluster simulation")
@@ -104,6 +105,9 @@ def main() -> None:
             waypoints=LEFT_WAYPOINTS,
             group_size=n_left,
             loop=args.loop,
+            anomaly_strategy=HeartbeatTimeoutDetection(),
+            invitation_strategy=AnyMemberLeadInvitation(),
+            reconciliation_strategy=PacketCountBullyReconciliation(),
         )
         builder.add_node(UAVClass, BASE_GROUND)
 
@@ -113,6 +117,9 @@ def main() -> None:
             waypoints=RIGHT_WAYPOINTS,
             group_size=n_right,
             loop=args.loop,
+            anomaly_strategy=HeartbeatTimeoutDetection(),
+            invitation_strategy=AnyMemberLeadInvitation(),
+            reconciliation_strategy=PacketCountBullyReconciliation(),
         )
         builder.add_node(UAVClass, BASE_GROUND)
 
