@@ -12,13 +12,12 @@ from utils.common.sensor_positions import (
 SIMULATION_DURATION   = 120
 
 # UAV configs
-NUM_UAVS = 5
-UAV_SPEED             = 3.0
+NUM_UAVS = 100
 FLIGHT_ALT      = 15.0
 PASS_ALT_OFFSET = 5.0
 
 # Communication configs
-COMM_RANGE            = 20.0
+COMM_RANGE            = NUM_UAVS * 4
 ANNOUNCE_WINDOW       = 3.0
 
 # Sensor configs
@@ -54,6 +53,15 @@ OBSTACLE_ZONE = ForbiddenZone(
     y_min = OBSTACLE_CENTER[1] - OBSTACLE_HALF_H,
     y_max = OBSTACLE_CENTER[1] + OBSTACLE_HALF_H,
 )
+
+_margin = 10.0
+_y_dist = ENDPOINT_GROUND[1] - BASE_GROUND[1]
+_backtrack_start = max(0, OBSTACLE_HALF_H + _margin - abs(BASE_GROUND[1])) * 2
+_backtrack_end = max(0, OBSTACLE_HALF_H + _margin - abs(ENDPOINT_GROUND[1])) * 2
+_x_detour = 2 * (OBSTACLE_HALF_W + _margin)
+_total_dist = _y_dist + _backtrack_start + _backtrack_end + _x_detour
+
+UAV_SPEED = max(3.0, _total_dist / (SIMULATION_DURATION * 0.8))
 
 SENSOR_POSITIONS = generate_sensor_positions(
     seed             = SENSOR_SEED,
@@ -101,3 +109,4 @@ LEFT_WAYPOINTS, RIGHT_WAYPOINTS = compute_split_waypoints(
     comm_range = COMM_RANGE,
     margin     = OBSTACLE_MARGIN,
 )
+

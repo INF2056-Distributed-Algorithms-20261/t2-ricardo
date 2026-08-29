@@ -139,6 +139,11 @@ class ElectionMixin:
         # Predefined leader: highest ID will be set on first heartbeat exchange
         # (we can't know the max ID at init time, so we defer)
         self._leader_predefined: bool = False
+        self._discovery_phase: bool = True
+
+        self.provider.schedule_timer(
+            "end_discovery", self.provider.current_time() + 2.0
+        )
 
         # Schedule the periodic split / merge detector
         self._schedule_election_check()
@@ -188,6 +193,10 @@ class ElectionMixin:
             self._schedule_election_check()
         elif timer == "election_timeout":
             self._on_election_timeout()
+        elif timer == "end_discovery":
+            self._discovery_phase = False
+            if not self._leader_predefined and not self._election_in_progress:
+                self._try_predefine_leader()
         else:
             super().handle_timer(timer)
 
@@ -241,11 +250,11 @@ class ElectionMixin:
                 self._peer_last_seen[peer_id] = now
 
                 # First exchange: predefine leader as highest known ID
-                if not self._leader_predefined and not self._election_in_progress:
+                if not self._leader_predefined and not self._election_in_progress and not getattr(self, "_discovery_phase", False):
                     self._try_predefine_leader()
 
                 # Merge detection: new peer appeared
-                if is_new_peer and self._leader_predefined:
+                if is_new_peer and self._leader_predefined and not getattr(self, "_discovery_phase", False):
                     logging.info(
                         f"UAV {self.provider.get_id()} detected MERGE — "
                         f"new peer {peer_id} appeared"
@@ -278,6 +287,9 @@ class ElectionMixin:
         Periodic check: ask the anomaly-detection strategy whether any
         peers have been lost or discovered, then act on the result.
         """
+        if getattr(self, "_discovery_phase", False):
+            return
+
         ctx = self._build_election_context()
         result = self.anomaly_strategy.check_for_anomaly(ctx)
 
@@ -364,6 +376,7 @@ class ElectionMixin:
                 "msg_type": "alive",
                 "sender_type": "uav",
                 "sender_id": my_id,
+                "target_id": sender_id,
             }
             self._broadcast_dict(alive_msg)
             # Start our own election if not already running
@@ -378,6 +391,10 @@ class ElectionMixin:
 
     def _on_receive_alive(self, raw: dict) -> None:
         """A higher-priority peer is alive — we won't be leader."""
+        target_id = raw.get("target_id")
+        if target_id is not None and target_id != self.provider.get_id():
+            return
+
         sender_id = raw["sender_id"]
         logging.debug(
             f"UAV {self.provider.get_id()} received alive from {sender_id} "
