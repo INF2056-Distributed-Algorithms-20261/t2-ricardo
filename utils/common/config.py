@@ -12,7 +12,7 @@ from utils.common.sensor_positions import (
 SIMULATION_DURATION   = 120
 
 # UAV configs
-NUM_UAVS = 100
+NUM_UAVS = 5 # default is 5 but can be changed using args
 FLIGHT_ALT      = 15.0
 PASS_ALT_OFFSET = 5.0
 

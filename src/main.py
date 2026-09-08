@@ -6,6 +6,7 @@ Run with:
     python -m src.main --no-viz         # disable browser visualisation
     python -m src.main --force-regen  # regenerate sensor/waypoint layout
 """
+from random import choice
 import logging
 import argparse
 from collections import defaultdict
@@ -63,17 +64,31 @@ def main() -> None:
         default=False,
         help="UAVs loop (bounce) along their path instead of stopping at the endpoint",
     )
+    parser.add_argument(
+        "--num-uavs",
+        type=int,
+        default= NUM_UAVS,
+        help="Number of UAVs in the cluster",
+    )
+    parser.add_argument(
+        "--split-percentage",
+        type=int,
+        default=50,
+        choices=range(0, 101),
+        help="Percentage of UAVs that will take the left path around the obstacle",
+    )
     args = parser.parse_args()
 
     # ── Simulation config ──────────────────────────────────────────────────
     config  = SimulationConfiguration(duration=SIMULATION_DURATION)
     builder = SimulationBuilder(config)
+    num_uavs = args.num_uavs
 
     logging.info(f"Base:              ({BASE_GROUND[0]:.1f}, {BASE_GROUND[1]:.1f})")
     logging.info(f"Endpoint:          ({ENDPOINT_GROUND[0]:.1f}, {ENDPOINT_GROUND[1]:.1f})")
     logging.info(f"Sensors placed:    {len(SENSOR_POSITIONS)}")
     logging.info(f"Cluster waypoints: {len(CLUSTER_WAYPOINTS)}")
-    logging.info(f"UAVs:              {NUM_UAVS}")
+    logging.info(f"UAVs:              {num_uavs}")
 
     # ── Scene bounds for visualisation ────────────────────────────────────
     if not args.no_viz:
@@ -95,8 +110,8 @@ def main() -> None:
     # Half the UAVs take the left path around the obstacle and the other
     # half take the right path.  Both groups merge after the obstacle,
     # creating a natural scenario for leader-election testing.
-    n_left  = NUM_UAVS // 2
-    n_right = NUM_UAVS - n_left
+    n_left  = num_uavs * args.split_percentage // 100
+    n_right = num_uavs - n_left
 
     logging.info(f"Left group:  {n_left} UAVs  ({len(LEFT_WAYPOINTS)} waypoints)")
     logging.info(f"Right group: {n_right} UAVs ({len(RIGHT_WAYPOINTS)} waypoints)")

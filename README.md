@@ -88,6 +88,8 @@ python -m src.main
 | `--no-viz` | Disable the browser visualisation |
 | `--force-regen` | Force regeneration of sensor positions and cluster waypoints |
 | `--loop` | UAVs bounce back and forth along their path instead of stopping at the endpoint |
+| `--num-uavs NUM_UAVS` | Number of UAVs in the cluster (default: 5) |
+| `--split-percentage %`| Percentage of UAVs that will take the left path around the obstacle (default: 50). For example: 70 means 70% of UAVs take the left path and 30% take the right path |
 
 By default (`--loop` not set) the simulation **ends automatically** once every UAV has reached its final waypoint. With `--loop`, UAVs patrol continuously until `SIMULATION_DURATION` is reached.
 
